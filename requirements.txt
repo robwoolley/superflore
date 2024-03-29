@@ -1,4 +1,4 @@
-nose
+nose3
 flake8
 flake8-import-order
 termcolor
