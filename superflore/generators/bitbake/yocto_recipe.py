@@ -56,6 +56,8 @@ yocto_releases = {
     'walnascar': '5.2',
     'whinlatter': '5.3',
     'wrynose': '6.0',
+    'wrynose': '6.0',
+    'blacksail': '6.1',
 }
 
 
@@ -422,11 +424,15 @@ class yoctoRecipe(object):
                 ret += '# Original license in package.xml:\n'
                 ret += '#         "' + self.license + '"\n'
         elif isinstance(self.license, list):
-            oe_lic = ' & '.join([get_license(lic) for lic in self.license])
-            if oe_lic != ' & '.join(self.license):
+            _concat = "AND"
+            if self.release:
+                if Version(self._get_yocto_version(self.release)) < Version(yocto_releases['blacksail']):
+                    _concat = "&"
+            oe_lic = f' {_concat} '.join([get_license(lic) for lic in self.license])
+            if oe_lic != f' {_concat} '.join(self.license):
                 ret += '# Original license in package.xml, joined with '
-                ret += '"&" when multiple license tags were used:\n'
-                ret += '#         "' + ' & '.join(self.license) + '"\n'
+                ret += f'"{_concat}" when multiple license tags were used:\n'
+                ret += '#         "' + f' {_concat} '.join(self.license) + '"\n'
         ret += 'LICENSE = "' + oe_lic + '"\n'
         ret += 'LIC_FILES_CHKSUM = "file://package.xml;beginline='
         ret += str(self.license_line)
