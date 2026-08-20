@@ -1,20 +1,18 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm>=8"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "superflore"
 description = "Super Bloom"
 readme = "README.md"
-license = { text = "Apache 2.0" }
+license = "Apache-2.0 AND MIT"
 authors = [
     { name = "Hunter L. Allen", email = "hunterlallen@protonmail.com" },
 ]
 keywords = ["ROS"]
 classifiers = [
     "Programming Language :: Python",
-    "License :: OSI Approved :: Apache Software License",
-    "License :: OSI Approved :: MIT License",
 ]
 requires-python = ">=3"
 dynamic = ["version"]
