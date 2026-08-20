@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "superflore"
+description = "Super Bloom"
+readme = "README.md"
+license = { text = "Apache 2.0" }
+authors = [
+    { name = "Hunter L. Allen", email = "hunterlallen@protonmail.com" },
+]
+keywords = ["ROS"]
+classifiers = [
+    "Programming Language :: Python",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
+]
+requires-python = ">=3"
+dynamic = ["version"]
+dependencies = [
+    "xmltodict",
+    "termcolor",
+    "setuptools",
+    "rosinstall_generator",
+    "rosdistro >= 0.7.4",
+    "rosdep >= 0.15.2",
+    "gitpython",
+    "requests",
+    "docker",
+    "pyyaml",
+    "pygithub",
+    "catkin_pkg >= 0.4.10",
+    "rospkg >= 1.1.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/ros-infrastructure/superflore"
+
+[project.scripts]
+superflore-gen-ebuilds = "superflore.generators.ebuild:main"
+superflore-gen-oe-recipes = "superflore.generators.bitbake:main"
+superflore-gen-nix = "superflore.generators.nix:main"
+superflore-check-ebuilds = "superflore.test_integration.gentoo:main"
+
+[project.optional-dependencies]
+test = [
+    "pynose",
+    "flake8",
+    "flake8-import-order",
+    "pep8",
+]
+dev = [
+    "superflore[test]",
+]
+
+[tool.setuptools]
+packages = { find = { exclude = ["tests", "tests.*"] } }
+
+[tool.setuptools_scm]
