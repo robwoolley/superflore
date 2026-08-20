@@ -30,7 +30,7 @@ If you're running it with `--dry-run` enabled, then `SUPERFLORE_GITHUB_TOKEN` is
 Then install and run the application.
 
 ```
- $ sudo python3 ./setup.py install
+ $ pip install .
 ```
 
 Gentoo Usage:
