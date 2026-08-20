@@ -47,11 +47,9 @@ superflore-check-ebuilds = "superflore.test_integration.gentoo:main"
 [project.optional-dependencies]
 test = [
     "pytest",
-    "flake8",
-    "flake8-import-order",
-    "pep8",
 ]
 dev = [
+    "ruff",
     "superflore[test]",
 ]
 
@@ -59,3 +57,12 @@ dev = [
 packages = { find = { exclude = ["tests", "tests.*"] } }
 
 [tool.setuptools_scm]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.ruff.format]
+quote-style = "single"
