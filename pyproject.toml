@@ -45,7 +45,7 @@ superflore-check-ebuilds = "superflore.test_integration.gentoo:main"
 
 [project.optional-dependencies]
 test = [
-    "pynose",
+    "pytest",
     "flake8",
     "flake8-import-order",
     "pep8",
