@@ -16,6 +16,9 @@ from superflore.docker import Docker
 from superflore.docker import NoDockerfileSupplied
 import unittest
 
+@unittest.skip(
+    'requires a live Docker daemon, not available in containerized CI'
+)
 class TestDocker(unittest.TestCase):
     def test_init(self):
         """Test Docker __init__"""
