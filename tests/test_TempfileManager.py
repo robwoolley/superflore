@@ -31,6 +31,10 @@ class TestTempfileManager(unittest.TestCase):
         self.assertTrue(os.path.exists('%s/test' % tmp))
         shutil.rmtree('%s' % tmp)
         
+    @unittest.skip(
+        'relies on hitting a permission-restricted path, unreliable when '
+        'CI runs as root'
+    )
     def test_failed_to_create(self):
         """Test making a directory in a bad location"""
         with self.assertRaises(OSError):
