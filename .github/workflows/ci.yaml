@@ -52,6 +52,9 @@ jobs:
           python -m pytest --verbose
           ruff check superflore tests
           ruff format --check superflore tests
+      - name: Type check (report-only)
+        continue-on-error: true
+        run: mypy
 
 
 
