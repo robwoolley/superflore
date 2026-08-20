@@ -49,6 +49,7 @@ test = [
 ]
 dev = [
     "ruff",
+    "pre-commit",
     "superflore[test]",
 ]
 
