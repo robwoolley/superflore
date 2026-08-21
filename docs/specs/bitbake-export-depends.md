@@ -474,6 +474,26 @@ acceptable, and is in fact the only closure shape that is *correct*.
 **Exit criteria:** `tests/test_export_depends.py` green; no network access in
 those tests; `ruff` and `mypy` clean.
 
+**Status: done (2026-08-21).** `superflore/generators/bitbake/export_depends.py`
+implements `DependencyClosure`/`TransitiveDeps` per §3.1 and
+`RosdistroDependencyOracle` per §3.4 (memoised one walker per distro name,
+class-level cache, `reset()` classmethod for the multi-distro loop). All 14
+tests in `tests/test_export_depends.py` (fixtures in `tests/bitbake/fixtures.py`)
+pass, confirmed offline under a real network-namespace isolation (`unshare
+--net`), not just absence-of-mocked-calls. `ruff check`/`ruff format --check`
+clean; `mypy` reports zero issues for the new module (the 4 pre-existing
+report-only errors elsewhere are in `nix/`, untouched by this work).
+Cross-validated against real `jazzy` rosdistro data via
+`RosdistroDependencyOracle`: `compute('example_interfaces')` reproduces the
+exact §2.4 worked example — `action_msgs`, `service_msgs`,
+`rosidl_core_generators`, and the full `ament_cmake_export_*` set all land in
+`native`, matching what M2's exit criteria expects the rendered recipe to
+name. This branch was rebased onto `modernize-tooling`
+(https://github.com/robwoolley/superflore/tree/modernize-tooling) first,
+which is what supplied `pyproject.toml`/`ruff`/`mypy`/pytest — this spec's
+M1.5 and M4's exit criteria assumed that tooling but the base branch
+predates it.
+
 ### M2 — Wire into recipe generation
 
 | # | Task |
