@@ -31,6 +31,7 @@ import yaml
 from packaging.version import Version
 
 from superflore.exceptions import NoPkgXml, UnresolvedDependency
+from superflore.generators.bitbake.export_depends import RosdistroDependencyOracle
 from superflore.PackageMetadata import PackageMetadata
 from superflore.utils import (
     err,
@@ -149,6 +150,12 @@ class yoctoRecipe(object):
         self.export_depends_external = set()
         self.buildtool_export_depends = set()
         self.buildtool_export_depends_external = set()
+        self.transitive_export_depends = set()
+        self.transitive_export_depends_external = set()
+        self.transitive_buildtool_export_depends = set()
+        self.transitive_buildtool_export_depends_external = set()
+        self.native_variant_closure = set()
+        self.native_variant_closure_external = set()
         self.rdepends = set()
         self.rdepends_external = set()
         self.tdepends = set()
@@ -279,6 +286,41 @@ class yoctoRecipe(object):
             else:
                 if btedepend not in self.buildtool_export_depends:
                     self.buildtool_export_depends_external.add(btedepend)
+
+    def add_transitive_export_depend(self, tedepend, internal=True):
+        """Sec. 3.1 Closure A, target space: a build_export_depend/
+        buildtool_export_depend of something this recipe (transitively)
+        build_depends or build_export_depends on."""
+        if tedepend not in self.skip_keys:
+            if internal:
+                if tedepend not in self.transitive_export_depends_external:
+                    self.transitive_export_depends.add(tedepend)
+            else:
+                if tedepend not in self.transitive_export_depends:
+                    self.transitive_export_depends_external.add(tedepend)
+
+    def add_transitive_buildtool_export_depend(self, tbtedepend, internal=True):
+        """Sec. 3.1 Closure A, native space: a build_export_depend/
+        buildtool_export_depend reached through a native-space node."""
+        if tbtedepend not in self.skip_keys:
+            if internal:
+                if tbtedepend not in self.transitive_buildtool_export_depends_external:
+                    self.transitive_buildtool_export_depends.add(tbtedepend)
+            else:
+                if tbtedepend not in self.transitive_buildtool_export_depends:
+                    self.transitive_buildtool_export_depends_external.add(tbtedepend)
+
+    def add_native_variant(self, variant, internal=True):
+        """Sec. 3.1 Closure B, the "-native" existence closure. Never
+        rendered into this recipe's own DEPENDS -- its only consumer is
+        ROS_SUPERFLORE_GENERATED_BUILDTOOLS, fed from get_recipe_text()."""
+        if variant not in self.skip_keys:
+            if internal:
+                if variant not in self.native_variant_closure_external:
+                    self.native_variant_closure.add(variant)
+            else:
+                if variant not in self.native_variant_closure:
+                    self.native_variant_closure_external.add(variant)
 
     def add_run_depend(self, rdepend, internal=True):
         if rdepend not in self.skip_keys:
@@ -463,7 +505,6 @@ class yoctoRecipe(object):
         buildtool_native_deps, sys_deps = self.get_dependencies(
             self.buildtool_depends, self.buildtool_depends_external, is_native=True
         )
-        native_deps = set(buildtool_native_deps)
         yoctoRecipe.platform_deps |= sys_deps
         export_deps, sys_deps = self.get_dependencies(
             self.export_depends, self.export_depends_external
@@ -474,9 +515,35 @@ class yoctoRecipe(object):
             self.buildtool_export_depends_external,
             is_native=True,
         )
-        native_deps |= buildtool_export_native_deps
         yoctoRecipe.platform_deps |= sys_deps
-        yoctoRecipe.generated_native_recipes |= native_deps
+        # Sec. 3.1 Closure A: what the direct deps above transitively
+        # export_depend/buildtool_export_depend on, in turn.
+        transitive_target_deps, sys_deps = self.get_dependencies(
+            self.transitive_export_depends, self.transitive_export_depends_external
+        )
+        yoctoRecipe.platform_deps |= sys_deps
+        transitive_native_deps, sys_deps = self.get_dependencies(
+            self.transitive_buildtool_export_depends,
+            self.transitive_buildtool_export_depends_external,
+            is_native=True,
+        )
+        yoctoRecipe.platform_deps |= sys_deps
+        # Sec. 3.1 Closure B: everything that needs a "-native" variant to
+        # exist for this recipe's native-space dependency graph to resolve.
+        # Never rendered into DEPENDS -- feeds ROS_SUPERFLORE_GENERATED_BUILDTOOLS
+        # only, via generated_native_recipes below.
+        native_variant_deps, sys_deps = self.get_dependencies(
+            self.native_variant_closure,
+            self.native_variant_closure_external,
+            is_native=True,
+        )
+        yoctoRecipe.platform_deps |= sys_deps
+        native_deps = (
+            buildtool_native_deps
+            | buildtool_export_native_deps
+            | transitive_native_deps
+        )
+        yoctoRecipe.generated_native_recipes |= native_deps | native_variant_deps
         exec_deps, sys_deps = self.get_dependencies(
             self.rdepends, self.rdepends_external
         )
@@ -486,7 +553,12 @@ class yoctoRecipe(object):
         )
         yoctoRecipe.platform_deps |= sys_deps
         yoctoRecipe.generated_non_test_deps |= (
-            deps | export_deps | native_deps | exec_deps
+            deps
+            | export_deps
+            | native_deps
+            | exec_deps
+            | transitive_target_deps
+            | native_variant_deps
         )
         yoctoRecipe.generated_test_deps |= test_deps
         ret += yoctoRecipe.generate_multiline_variable('ROS_BUILD_DEPENDS', deps) + '\n'
@@ -496,27 +568,31 @@ class yoctoRecipe(object):
             )
             + '\n'
         )
-        if self.name == 'ament_cmake':
-            ret += (
-                yoctoRecipe.generate_multiline_variable('ROS_EXPORT_DEPENDS', '') + '\n'
-            )
-            ament_cmake_native_deps, sys_deps = self.get_dependencies(
-                self.export_depends, self.export_depends_external, is_native=True
-            )
-            buildtool_export_native_deps |= ament_cmake_native_deps
-            yoctoRecipe.generated_non_test_deps |= ament_cmake_native_deps
-            yoctoRecipe.generated_native_recipes |= ament_cmake_native_deps
-            yoctoRecipe.platform_deps |= sys_deps
-        else:
-            ret += (
-                yoctoRecipe.generate_multiline_variable(
-                    'ROS_EXPORT_DEPENDS', export_deps
-                )
-                + '\n'
-            )
+        ret += (
+            yoctoRecipe.generate_multiline_variable('ROS_EXPORT_DEPENDS', export_deps)
+            + '\n'
+        )
         ret += (
             yoctoRecipe.generate_multiline_variable(
                 'ROS_BUILDTOOL_EXPORT_DEPENDS', buildtool_export_native_deps
+            )
+            + '\n'
+        )
+        ret += (
+            '# Propagated from the <build_export_depend>/<buildtool_export_depend>'
+            ' tags of the\n# packages above, transitively. Bitbake has no "export"'
+            ' concept, so superflore\n# flattens REP-149 export semantics into this'
+            ' recipe.\n'
+        )
+        ret += (
+            yoctoRecipe.generate_multiline_variable(
+                'ROS_TRANSITIVE_EXPORT_DEPENDS', transitive_target_deps
+            )
+            + '\n'
+        )
+        ret += (
+            yoctoRecipe.generate_multiline_variable(
+                'ROS_TRANSITIVE_BUILDTOOL_EXPORT_DEPENDS', transitive_native_deps
             )
             + '\n'
         )
@@ -531,12 +607,9 @@ class yoctoRecipe(object):
             + '\n'
         )
         ret += 'DEPENDS = "${ROS_BUILD_DEPENDS} ${ROS_BUILDTOOL_DEPENDS}"\n'
-        ret += '# Bitbake doesn\'t support the "export" concept, so build them'
-        ret += ' as if we needed them to build this package (even though we'
-        ret += " actually\n# don't) so that they're guaranteed to have been"
-        ret += " staged should this package appear in another's DEPENDS.\n"
-        ret += 'DEPENDS += "${ROS_EXPORT_DEPENDS} '
-        ret += '${ROS_BUILDTOOL_EXPORT_DEPENDS}"\n\n'
+        ret += 'DEPENDS += "${ROS_EXPORT_DEPENDS} ${ROS_BUILDTOOL_EXPORT_DEPENDS}"\n'
+        ret += 'DEPENDS += "${ROS_TRANSITIVE_EXPORT_DEPENDS} '
+        ret += '${ROS_TRANSITIVE_BUILDTOOL_EXPORT_DEPENDS}"\n\n'
         ret += 'RDEPENDS:${PN} += "${ROS_EXEC_DEPENDS}"' + '\n\n'
         # SRC_URI
         ret += '# matches with: ' + self.src_uri + '\n'
@@ -927,3 +1000,4 @@ class yoctoRecipe(object):
         yoctoRecipe.not_generated_recipes = set()
         yoctoRecipe.platform_deps = set()
         yoctoRecipe.max_component_name = 0
+        RosdistroDependencyOracle.reset()

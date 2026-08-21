@@ -13,12 +13,15 @@
 # limitations under the License.
 
 from catkin_pkg.package import InvalidPackage
-from rosdistro.dependency_walker import DependencyWalker
 from rosdistro.manifest_provider import get_release_tag
 from rosdistro.rosdistro import RosPackage
 from rosinstall_generator.distro import _generate_rosinstall, get_package_names
 
 from superflore.exceptions import NoPkgXml
+from superflore.generators.bitbake.export_depends import (
+    DependencyClosure,
+    RosdistroDependencyOracle,
+)
 from superflore.generators.bitbake.yocto_recipe import yoctoRecipe
 from superflore.utils import (
     err,
@@ -175,16 +178,18 @@ def _gen_recipe_for_package(
     skip_keys,
 ):
     pkg_names = get_package_names(rosdistro)
-    pkg_dep_walker = DependencyWalker(
+    # Hoisted per distro (Sec. 3.4): RosdistroDependencyOracle memoises one
+    # DependencyWalker per distro name, shared across every package.
+    oracle = RosdistroDependencyOracle(
         rosdistro,
         evaluate_condition_context=yoctoRecipe._get_condition_context(rosdistro.name),
     )
-    pkg_buildtool_deps = pkg_dep_walker.get_depends(pkg_name, 'buildtool')
-    pkg_build_deps = pkg_dep_walker.get_depends(pkg_name, 'build')
-    pkg_build_export_deps = pkg_dep_walker.get_depends(pkg_name, 'build_export')
-    pkg_buildtool_export_deps = pkg_dep_walker.get_depends(pkg_name, 'buildtool_export')
-    pkg_exec_deps = pkg_dep_walker.get_depends(pkg_name, 'exec')
-    pkg_test_deps = pkg_dep_walker.get_depends(pkg_name, 'test')
+    pkg_buildtool_deps = oracle.get_depends(pkg_name, 'buildtool')
+    pkg_build_deps = oracle.get_depends(pkg_name, 'build')
+    pkg_build_export_deps = oracle.get_depends(pkg_name, 'build_export')
+    pkg_buildtool_export_deps = oracle.get_depends(pkg_name, 'buildtool_export')
+    pkg_exec_deps = oracle.get_depends(pkg_name, 'exec')
+    pkg_test_deps = oracle.get_depends(pkg_name, 'test')
     src_uri = pkg_rosinstall[0]['tar']['uri']
 
     # parse through package xml
@@ -230,6 +235,22 @@ def _gen_recipe_for_package(
     # add test dependencies
     for tdep in pkg_test_deps:
         pkg_recipe.add_test_depend(tdep, tdep in pkg_names[0])
+
+    # Sec. 3.1: what the direct deps above transitively export_depend/
+    # buildtool_export_depend on, and what needs a "-native" variant to
+    # exist for this recipe's native-space dependency graph to resolve.
+    closure = DependencyClosure(
+        oracle, released_packages=pkg_names[0], skip_keys=skip_keys
+    )
+    transitive = closure.compute(pkg_name)
+    for tedep in transitive.target:
+        pkg_recipe.add_transitive_export_depend(tedep, tedep in pkg_names[0])
+    for tbtedep in transitive.native:
+        pkg_recipe.add_transitive_buildtool_export_depend(
+            tbtedep, tbtedep in pkg_names[0]
+        )
+    for variant in transitive.native_variants:
+        pkg_recipe.add_native_variant(variant, variant in pkg_names[0])
 
     return pkg_recipe
 

@@ -509,6 +509,42 @@ predates it.
 `example_interfaces` that names `action-msgs-native`, `service-msgs-native`,
 `rosidl-core-generators-native` and the `ament-cmake-*` export set.
 
+**Status: done (2026-08-21).** All six tasks landed in `yocto_recipe.py`/
+`gen_packages.py`. One deliberate addition beyond 2.1's literal wording: a
+third set, `native_variant_closure{,_external}` (with `add_native_variant()`),
+feeding Closure B (`TransitiveDeps.native_variants`) separately from the two
+named sets, which only carry Closure A. This is required, not optional —
+folding only Closure A's native output into `generated_native_recipes` would
+leave the `exec_depend`-reached packages from §2.2/M0.3 out of
+`ROS_SUPERFLORE_GENERATED_BUILDTOOLS` entirely, i.e. M1's whole reason for
+having two closures would go unused. `RosdistroDependencyOracle` replaces
+the per-package `DependencyWalker` construction in `_gen_recipe_for_package()`
+(closing out §3.4's hoisting concern as a side effect), and `yoctoRecipe.reset()`
+now also clears its walker cache.
+
+Validated two ways:
+* **Live, real jazzy data** (network, `rosdep init`/`update` run locally):
+  regenerating `example_interfaces` reproduces §2.4's worked example exactly
+  — `ROS_TRANSITIVE_BUILDTOOL_EXPORT_DEPENDS` names `action-msgs-native`,
+  `service-msgs-native`, `rosidl-core-generators-native`, and all 14 of
+  `ament_cmake`'s `ament-cmake-export-*`/etc. entries, native-suffixed.
+  Regenerating `ament_cmake` itself shows its `ROS_EXPORT_DEPENDS` is no
+  longer blanked (the special case is gone) — confirms M2.5's "superset"
+  requirement via the real graph rather than assumption.
+* **Offline golden-file tests**, `tests/test_yocto_recipe.py` (7 tests, a
+  hand-built `FakeDistro` fixture reproducing the same worked example at
+  smaller scale, patching only `get_distros` — no other network seam is
+  reached because every dependency in the fixture is internal): DEPENDS
+  includes all three new/changed lines in order, no duplicate between a
+  direct and transitive variable, empty-closure packages render `""`,
+  `skip_keys` excludes from transitive output, and `-native` placement for
+  an *unresolved* transitively-discovered dependency lands inside the
+  `${ROS_UNRESOLVED_DEP-...}` braces exactly as it does for a direct one
+  (M2.6). All pass under real network-namespace isolation.
+
+`ruff check`/`ruff format --check` clean repo-wide; `mypy` unchanged (the
+same 4 pre-existing `nix/` errors, unrelated).
+
 ### M3 — Distro-level generated files
 
 | # | Task |
