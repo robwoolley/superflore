@@ -556,6 +556,40 @@ same 4 pre-existing `nix/` errors, unrelated).
 
 **Exit criteria:** `tests/test_yocto_distro_inc.py` green.
 
+**Status: done (2026-08-21), with one discovered pre-existing gap flagged,
+not fixed.** `tests/test_yocto_distro_inc.py` (4 tests, fully offline,
+network-isolation-verified) simulates a small multi-package distro
+generation loop and reads back `generate_ros_distro_inc()`/
+`generate_rosdep_resolve()`'s actual disk output.
+
+* **3.1, 3.3, 3.4 confirmed working.** `ROS_SUPERFLORE_GENERATED_BUILDTOOLS_<DISTRO>`
+  names a package (`toolu`) reached *only* transitively (via another
+  package's `buildtool_export_depend`), not just direct buildtools —
+  exactly the M0.3 bug pattern, now fixed at the distro level too.
+  `ROS_SUPERFLORE_GENERATED_TESTS` stays test-only (a `test_depend`-only
+  package never leaks into the `-native` closure). A `-native`-only
+  dependency reached solely through Closure B's `exec_depend` walk gets
+  correctly resolved and appears in both `ROS_SUPERFLORE_GENERATED_PLATFORM_PACKAGE_DEPENDENCIES`
+  and `rosdep-resolve.yaml`, queried exactly once.
+* **3.2 does not hold, and this predates M2.** `ROS_SUPERFLORE_GENERATED_WORLD_PACKAGES`
+  is computed as `recipes_set - generated_native_recipes - test_deps`
+  ([yocto_recipe.py](../../superflore/generators/bitbake/yocto_recipe.py),
+  `generate_ros_distro_inc`), but `recipes_set` holds plain names (e.g.
+  `"toolt"`) while `generated_native_recipes` holds `-native`-suffixed ones
+  (`"toolt-native"`) — two disjoint string sets, so the subtraction has
+  always been a no-op. A package that only anyone ever needs as `-native`
+  still ships in `packagegroup-ros-world` today. This is orthogonal to
+  REP-149 propagation (§7 non-goal territory) and unrelated to M1/M2's
+  closures — `generated_native_recipes` grew under M2, but the bug's shape
+  is identical before and after, so nothing here regressed. Fixing it would
+  change existing meta-ros `packagegroup-ros-world` membership, which is a
+  real behavior change this spec didn't set out to make, so it's left alone
+  and just documented, with `test_world_packages_membership_unchanged_by_m2`
+  as a regression guard on the *current* (buggy) behavior for whoever picks
+  it up.
+
+`ruff`/`mypy` unchanged from M2.
+
 ### M4 — Test suite
 
 See §5. Delivered incrementally alongside M1–M3; this milestone is the gate that
@@ -719,3 +753,7 @@ subgraph containing `ament_cmake`, `rosidl_default_generators`,
   they use them correctly is a separate question.
 * Changing meta-ros bbclasses. All changes here are to superflore's generated
   output, which meta-ros consumes verbatim.
+* Fixing `ROS_SUPERFLORE_GENERATED_WORLD_PACKAGES`'s pre-existing
+  native/target name-set mismatch (found during M3; see M3's status note).
+  Predates this spec, unrelated to REP-149 propagation, and fixing it would
+  change existing `packagegroup-ros-world` membership.
