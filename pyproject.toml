@@ -73,6 +73,7 @@ quote-style = "single"
 # runs report-only in CI (see ci.yaml); expand `files` opportunistically as
 # modules gain annotations, rather than as a dedicated typing sweep.
 files = [
+    "superflore/generators/bitbake/export_depends.py",
     "superflore/generators/nix/nix_expression.py",
     "superflore/generators/nix/gen_packages.py",
     "superflore/generators/nix/nix_package.py",
