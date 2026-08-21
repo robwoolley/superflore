@@ -306,7 +306,160 @@ Nothing else starts until we can point at a failing build and a passing one.
 | 0.5 | Decide, based on 0.4, whether the `-native` existence closure needs bounding (see Risk R2). Record the decision in this document. |
 
 **Exit criteria:** the staging table in §2.1 is confirmed or corrected in this
-document; 0.4's numbers are recorded; the corpus from 0.1 exists.
+document; 0.4's numbers are recorded; the corpus from 0.1 exists. **All met —
+see results below.**
+
+#### 0.1 results (measured 2026-08-21)
+
+Corpus: [`docs/specs/corpus/`](corpus/README.md). Scanned every `.bbappend`
+in [`ros/meta-ros`](https://github.com/ros/meta-ros) (HEAD, all distros);
+"known downstream layers" beyond meta-ros itself were not scanned — no such
+layer list was supplied, and meta-ros alone was more than enough evidence
+(see the corpus README's scope note).
+
+* **935 `.bbappend` files** exist *solely* to re-add a build/buildtool
+  dependency (4528 individual dependency tokens across them) — the
+  acceptance corpus for M5.
+* Cross-checked the `jazzy`/`kilted` subset (1608 pairs) against the actual
+  §3.1 closures (reusing `blast_radius.py`, not reimplemented): **64% are
+  explained by the closure** — the dependency the maintainer hand-added is
+  sitting in the transitive export set this spec proposes computing, meaning
+  those bbappends become deletable under M5.3.
+* The 28% "not explained" bucket is not a design gap: it decomposes into
+  rosdep-key tooling deps (`python3-numpy-native` etc. — not ROS packages,
+  never exported by any tag), an `exec_depend`-only pattern
+  (`rosidl_default_runtime`, traced on `ackermann_msgs`: declared only as
+  `<exec_depend>`, and REP-149 has no runtime export tag — §7 non-goal), test-only
+  deps (`ament-cmake-gtest` et al. — closure never traverses `test_depend`),
+  and at least one case of plain `package.xml` under-declaration
+  (`backward_ros` re-adds `ament_cmake` as a workaround for never declaring
+  it as a buildtool at all — no closure over a tag that was never declared
+  can fix that).
+
+#### 0.2 results (measured 2026-08-21)
+
+Reproducer: [`docs/specs/reproducers/m0.2-staging-table/`](reproducers/m0.2-staging-table/README.md).
+Five real `.bb` recipes (`libA`/`libB`/`toolT`/`toolU`/`C`, shaped exactly
+like a generated recipe's `DEPENDS` today) built with real `bitbake` on
+**wrynose** (Yocto 6.0.3, the current latest release — set up via
+`bitbake-setup`, since the classic single-repo `poky` combo layer has no
+`wrynose` branch cut yet, but the split `openembedded-core`/`meta-yocto`
+repos `bitbake-setup` composes it from do). Consumer `C` only ever names
+`liba` in its own `DEPENDS`, exactly like `example_interfaces` in the §2.4
+worked example.
+
+**The §2.1 staging table is confirmed, not corrected**, on 3 of its 4 rows
+(the 4th, `target ← native`, is a rare corner case not exercised by any
+REP-149 pattern and wasn't reproduced — confirmed by source reading only):
+
+| Row | Observed in `C`'s real, on-disk `recipe-sysroot{,-native}` |
+| --- | --- |
+| target ← target: staged | `libb-marker.h` present, though `C` never names `libb` |
+| native ← target: **pruned** | `toolt-marker`/`toolu-marker` **absent** — `recipe-sysroot-native/sysroot-providers/` contains no trace of `toolT`/`toolU` at all |
+| native ← native: staged | (control case, on `toolT-native` itself) `toolu-marker` present |
+
+This is the direct, on-disk confirmation of the bug: `C` legitimately needs
+`toolT`/`toolU` (that's what `buildtool_export_depend` means), the *target*
+half of the same shape (`libB`) propagates with zero special handling, and
+the *native* half silently vanishes.
+
+#### 0.3 results (measured 2026-08-21)
+
+Reproducer: [`docs/specs/reproducers/m0.3-nothing-provides/`](reproducers/m0.3-nothing-provides/README.md).
+Byte-for-byte reproduction of `ros_superflore_generated.bbclass`'s
+`BBCLASSEXTEND:append = "${@bb.utils.contains('...GENERATED_BUILDTOOLS', ...)}"`
+gate, applied to a `toolU`/`toolT` pair on the same wrynose environment.
+
+* `GENERATED_BUILDTOOLS` not listing `toolu-native` →
+  `bitbake -c populate_sysroot toolt-native` fails:
+  `ERROR: Nothing PROVIDES 'toolu-native' (but ... toolt_1.0.bb DEPENDS on or
+  otherwise requires it)`.
+* Adding one line, `GENERATED_BUILDTOOLS = "toolu-native"`, with **no other
+  change** → same build succeeds cleanly.
+
+Confirms §2.2 exactly: whether a `-native` variant exists is decided by a
+signal (today: some *other* package's *direct* `buildtool_depend`/
+`buildtool_export_depend`) entirely disconnected from whether anything
+actually needs it, and the failure when they diverge is a hard build error,
+not a warning.
+
+#### 0.4 results (measured 2026-08-21)
+
+Script: [`docs/specs/measurements/blast_radius.py`](measurements/blast_radius.py).
+It computes both §3.1 closures against the real `jazzy` and `kilted` rosdistro
+distribution caches (fetched once via `rosdistro.get_cached_distribution`,
+then traversed with zero network access — no superflore code is imported).
+Per-package results: [`jazzy_blast_radius.csv`](measurements/jazzy_blast_radius.csv),
+[`kilted_blast_radius.csv`](measurements/kilted_blast_radius.csv). Full report:
+[`blast_radius_report.md`](measurements/blast_radius_report.md).
+
+| Distro | Released pkgs | `GENERATED_BUILDTOOLS` today | under closure | growth |
+| --- | --- | --- | --- | --- |
+| jazzy | 2265 | 119 | 269 | **+150 (+126%)**, 11.9% of the distro |
+| kilted | 1756 | 113 | 271 | **+158 (+140%)**, 15.4% of the distro |
+
+Per-package closure sizes are heavy-tailed, not uniform: median closure size
+is ~20-22 packages, but individual packages spike to 150-200+ even when they
+declare only 1-4 direct `buildtool_depend`s. Root cause, confirmed by tracing
+`rmf_traffic_editor_test_maps` (jazzy): it directly needs
+`rmf_building_map_tools` as a buildtool, which alone has 14 direct
+`exec_depend`s; because §2.2's `-native` existence closure must traverse
+*every* dependency type once a node is in native space (not just exports —
+`native.bbclass` rewrites `RDEPENDS` too), the closure keeps recursing through
+`exec_depend → exec_depend → …` and pulls in that tool's entire runtime
+dependency graph. This is the exact mechanism Risk R2 warns about, not an
+artifact of the measurement.
+
+This confirms R2 is real and material: the unbounded `-native` existence
+closure roughly doubles (or more) `ROS_SUPERFLORE_GENERATED_BUILDTOOLS` on
+both measured distros, and does so unevenly — a handful of packages account
+for most of the growth. See the 0.5 decision below for what to do about it —
+truncating the traversal turns out to be the wrong fix, for a reason that
+only became clear while running M0.3: it would just reintroduce the
+`Nothing PROVIDES` failure at a different depth.
+
+#### 0.5 decision (2026-08-21)
+
+**The `-native` existence closure should stay unbounded. Do not truncate
+`exec_depend` traversal.**
+
+Two things learned while running M0.2/M0.3 (§0.2/§0.3 results above) change
+the calculus from what R2's mitigation text originally proposed:
+
+1. **Truncating the closure is unsound, not just imprecise.** `native.bbclass`
+   rewrites *every* dependency type of a native recipe to `-native`,
+   including `RDEPENDS`/`exec_depend` — that's not incidental, it's the
+   mechanism M0.3 empirically reproduces the failure through. A closure that
+   stops following `exec_depend` past the first buildtool hop leaves exactly
+   the same class of `Nothing PROVIDES`/`Nothing RPROVIDES` failure
+   unresolved one level deeper. Bounding by truncation doesn't shrink the
+   real problem, it relocates it to wherever the cut was made.
+2. **The growth mostly isn't build-time cost — it's correctness headroom.**
+   `ROS_SUPERFLORE_GENERATED_BUILDTOOLS` only feeds
+   `BBCLASSEXTEND:append = "... native nativesdk"`
+   (`meta-ros-common/classes/ros_superflore_generated.bbclass`), which makes
+   a `-native` variant *buildable if something needs it*; it does not force
+   it to build. And `ROS_SUPERFLORE_GENERATED_WORLD_PACKAGES` already
+   explicitly subtracts `generated_native_recipes`
+   ([yocto_recipe.py:672-673](../../superflore/generators/bitbake/yocto_recipe.py#L672-L673)),
+   so growth here does not by itself enlarge `packagegroup-ros-world`. Real
+   wall-clock cost is incurred only by builds that actually exercise the
+   newly-reachable paths — which, per point 1, are paths that were always
+   really needed; today's smaller number was under-counting, not a
+   deliberately cheaper correct answer.
+
+Given that, the right place to police cost is M5.5's existing ≤20%
+wall-clock budget on a real build, not a closure-shape change now. If M5.5
+comes in over budget, revisit — but the fix at that point should be
+scoped narrowly (e.g. keeping specific test/demo-only packages like
+`rmf_traffic_editor_test_maps`, `autoware_testing`, `ros_testing` — the
+worst offenders in the M0.4 data — out of `packagegroup-ros-world` on
+policy grounds, which is a world-membership question unrelated to this
+spec) rather than a general algorithmic cap that would reopen R2's
+underlying failure mode.
+
+This also resolves reviewer open question 1 (§6): the unbounded closure is
+acceptable, and is in fact the only closure shape that is *correct*.
 
 ### M1 — Closure engine
 
@@ -469,17 +622,21 @@ subgraph containing `ament_cmake`, `rosidl_default_generators`,
 | # | Risk | Mitigation |
 | --- | --- | --- |
 | **R1** | `DEPENDS` lists grow large. `<depend>` expands to `build` + `build_export` + `exec` in catkin_pkg, so export edges are dense and closures may be big. | Measure in M0.4. Bitbake handles long `DEPENDS` fine; the cost is parse time and reviewability, not correctness. Keeping direct and transitive in separate variables preserves reviewability. |
-| **R2** | The `-native` existence closure (§3.1, second closure) traverses `exec_depend` and could pull a large fraction of the distro into `ROS_SUPERFLORE_GENERATED_BUILDTOOLS`, greatly increasing build time. | M0.4 measures it; M0.5 decides. Bounding options: traverse `exec_depend` only for packages that are actually buildtools, or cap by depth. **This is the single biggest open question in the spec.** |
+| **R2** | The `-native` existence closure (§3.1, second closure) traverses `exec_depend` and could pull a large fraction of the distro into `ROS_SUPERFLORE_GENERATED_BUILDTOOLS`, greatly increasing build time. | **Decided (§0.5 decision).** M0.4 confirmed real growth (`+126%` jazzy / `+140%` kilted). M0.3 then showed *why* truncating it is the wrong fix: bounding `exec_depend` traversal reintroduces the exact `Nothing PROVIDES` failure M0.3 reproduces, one level deeper. The closure stays unbounded; cost is policed by M5.5's wall-clock budget instead of by the algorithm. |
 | **R3** | Flattening makes recipes stale when an unrelated package changes its exports. | Full regeneration is the normal mode; document the `--only` caveat (M5.6). |
 | **R4** | Removing the `ament_cmake` special case regresses something it was silently fixing beyond exports. | M2.5 golden-file superset proof, plus M5.4 real build. |
-| **R5** | The §2.1 staging table is derived from reading current `sstate.bbclass`; it may differ on older supported releases (kirkstone → wrynose are all in `yocto_releases`). | M0.2 reproducer run on both the oldest and newest supported release. |
+| **R5** | The §2.1 staging table is derived from reading current `sstate.bbclass`; it may differ on older supported releases (kirkstone → wrynose are all in `yocto_releases`). | **Addressed.** M0.2 reproducer built and empirically verified end-to-end on wrynose (6.0.3, current latest, via `bitbake-setup`). `setscene_depvalid()`'s decisive block (the four `isNativeCross` rules) is byte-for-byte identical in kirkstone (4.0, oldest supported), confirmed by direct source diff — the mechanism has been stable across the whole supported range. |
 | **R6** | Generation slowdown from the extra graph walk. | §3.4 walker hoisting; M5.5 budget. |
 | **R7** | meta-ros consumers may parse the generated recipes with their own tooling and choke on new variables. | Purely additive output; flag in the M5.7 meta-ros PR. |
 
 **Open questions for reviewers**
 
-1. **R2's bound** — is an unbounded native closure acceptable, given it directly
-   determines how many `-native` recipes get built?
+1. **R2's bound — resolved, see §0.5 decision.** An unbounded native closure
+   is acceptable: it only determines how many `-native` recipes are
+   *buildable* (`BBCLASSEXTEND`), not how many actually get built
+   (`ROS_SUPERFLORE_GENERATED_WORLD_PACKAGES` already excludes native-only
+   packages), and truncating it reopens the `Nothing PROVIDES` failure class
+   M0.3 reproduces.
 2. Should `ROS_TRANSITIVE_*` instead be appended into the existing
    `ROS_EXPORT_DEPENDS` / `ROS_BUILDTOOL_EXPORT_DEPENDS`? That is a smaller diff
    against meta-ros but loses the direct/inferred distinction and changes the

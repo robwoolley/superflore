@@ -1,0 +1,10 @@
+NOTE: Resolving any missing task queue dependencies
+ERROR: Nothing PROVIDES 'toolu-native' (but virtual:native:<setup-dir>/meta-repro2/recipes-repro/toolt/toolt_1.0.bb DEPENDS on or otherwise requires it). Close matches:
+  libtool-native
+  mtools-native
+  toolt-native
+ERROR: Required build target 'toolt-native' has no buildable providers.
+Missing or unbuildable dependency chain was: ['toolt-native', 'toolu-native']
+
+Summary: There was 1 WARNING message.
+Summary: There were 2 ERROR messages, returning a non-zero exit code.

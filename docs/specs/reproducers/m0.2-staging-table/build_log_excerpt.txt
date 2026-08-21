@@ -1,0 +1,21 @@
+NOTE: recipe toolu-native-1.0-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe toolu-native-1.0-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: recipe toolu-native-1.0-r0: task do_populate_sysroot: Started
+NOTE: recipe toolu-native-1.0-r0: task do_populate_sysroot: Succeeded
+NOTE: recipe toolt-native-1.0-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe toolt-native-1.0-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: recipe toolt-native-1.0-r0: task do_populate_sysroot: Started
+NOTE: recipe toolt-native-1.0-r0: task do_populate_sysroot: Succeeded
+NOTE: recipe libb-1.0-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe libb-1.0-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: recipe libb-1.0-r0: task do_populate_sysroot: Started
+NOTE: recipe libb-1.0-r0: task do_populate_sysroot: Succeeded
+NOTE: recipe liba-1.0-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe liba-1.0-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: recipe liba-1.0-r0: task do_populate_sysroot: Started
+NOTE: recipe liba-1.0-r0: task do_populate_sysroot: Succeeded
+NOTE: recipe c-1.0-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe c-1.0-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: recipe c-1.0-r0: task do_populate_sysroot: Started
+NOTE: recipe c-1.0-r0: task do_populate_sysroot: Succeeded
+NOTE: Tasks Summary: Attempted 190 tasks of which 0 didn't need to be rerun and all succeeded.

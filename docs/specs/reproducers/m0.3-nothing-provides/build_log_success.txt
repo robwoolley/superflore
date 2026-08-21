@@ -1,0 +1,13 @@
+NOTE: recipe toolu-native-1.0-r0: task do_recipe_qa: Started
+NOTE: recipe toolt-native-1.0-r0: task do_recipe_qa: Started
+NOTE: recipe toolu-native-1.0-r0: task do_recipe_qa: Succeeded
+NOTE: recipe toolt-native-1.0-r0: task do_recipe_qa: Succeeded
+NOTE: Running setscene task 6 of 9 (virtual:native:<setup-dir>/meta-repro2/recipes-repro/toolu/toolu_1.0.bb:do_populate_sysroot_setscene)
+NOTE: Running setscene task 7 of 9 (virtual:native:<setup-dir>/meta-repro2/recipes-repro/toolt/toolt_1.0.bb:do_populate_sysroot_setscene)
+NOTE: recipe toolt-native-1.0-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe toolu-native-1.0-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe toolu-native-1.0-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: recipe toolt-native-1.0-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Tasks Summary: Attempted 30 tasks of which 28 didn't need to be rerun and all succeeded.
+
+Summary: There was 1 WARNING message.
