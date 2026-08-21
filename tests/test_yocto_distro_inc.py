@@ -31,6 +31,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from superflore.generators.bitbake.export_depends import RosdistroDependencyOracle
 from superflore.generators.bitbake.gen_packages import _gen_recipe_for_package
 from superflore.generators.bitbake.yocto_recipe import yoctoRecipe
 from tests.bitbake.fixtures import FakeDistro, FakeRosPkg
@@ -181,6 +182,21 @@ class TestYoctoDistroInc(unittest.TestCase):
         # practice (nothing build_depends the plain "toolt"). It still
         # shows up in world today.
         self.assertIn('toolt', world_packages)
+
+    def test_reset_clears_transitive_state(self):
+        """5.4: yoctoRecipe.reset() must also clear
+        RosdistroDependencyOracle's per-distro walker cache -- the new
+        class-level state M1/M2 introduced -- or the multi-distro loop in
+        run.py would carry one distro's parsed packages into the next."""
+        with tempfile.TemporaryDirectory() as basepath:
+            _generate_distro(basepath)
+        self.assertNotEqual(RosdistroDependencyOracle._walkers, {})
+        yoctoRecipe.reset()
+        self.assertEqual(RosdistroDependencyOracle._walkers, {})
+        # And the pre-existing class-level state still gets cleared too.
+        self.assertEqual(yoctoRecipe.generated_native_recipes, set())
+        self.assertEqual(yoctoRecipe.generated_recipes, {})
+        self.assertEqual(yoctoRecipe.platform_deps, set())
 
 
 if __name__ == '__main__':

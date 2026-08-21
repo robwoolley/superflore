@@ -595,6 +595,52 @@ generation loop and reads back `generate_ros_distro_inc()`/
 See §5. Delivered incrementally alongside M1–M3; this milestone is the gate that
 all of it is present and runs offline in CI.
 
+**Status: done (2026-08-21).** Everything in §5 is present and green, with one
+documented, deliberate deviation:
+
+* §5.1 — done in M1/M2/M3 (`tests/bitbake/fixtures.py`: `FakeDependencyOracle`,
+  `FakeDistro`, `FakeRosPkg`, `make_package_xml`). Added this round:
+  `tests/test_no_network.py`, the §5.1/5.6 hard-requirement CI guard —
+  blocks `socket.socket.connect`/`connect_ex` for real (verified it actually
+  intercepts a genuine connection attempt, not just a no-op mock) and drives
+  the closure engine and recipe renderer through it.
+* §5.2 — all 14, done in M1.
+* §5.3 — all 8 rows covered, including the previously-missing
+  `test_simple_recipe_golden` against a new checked-in
+  `tests/bitbake/simple_expected.bb` (regeneration command in the test's
+  docstring, following the `tests/ebuild/simple_expected.ebuild` precedent).
+  `test_transitive_vars_emitted`'s formatting/sorting/continuation claim is
+  covered by the golden test's byte-for-byte comparison rather than a
+  separately-named test.
+* §5.4 — 4 of 5 rows as literally specified, plus the previously-missing
+  `test_reset_clears_transitive_state` (confirms `RosdistroDependencyOracle`'s
+  walker cache — the new class-level state M1/M2 introduced — is cleared by
+  `yoctoRecipe.reset()`, not just the pre-existing accumulators).
+  `test_world_excludes_native_only` is **not** implemented as specified: M3
+  found the exclusion it would assert doesn't actually happen (pre-existing
+  gap, documented there and in §7). Implementing the literal test would mean
+  asserting something false; `test_world_packages_membership_unchanged_by_m2`
+  documents the real behavior instead, so a future fix has a regression
+  guard to work against.
+* §5.5 — all 4 property tests, new this round, in
+  `tests/test_yocto_distro_property.py` against a hand-curated ~25-package
+  fixture (the `ament_cmake`/`rosidl_default_generators`/`rosidl_core_generators`
+  cluster, two independent consumers of the resulting interface package,
+  a plain library, a mutually-exporting cycle pair, one test-only and one
+  external dependency). Mutation-tested: temporarily broke the
+  `transitive.native` wiring in `gen_packages.py` and confirmed
+  `test_dependency_closure_is_complete` caught it before reverting — the
+  suite has real teeth, not just passing trivially against its own
+  implementation.
+* §5.6 — `test_no_network` done (above); the M0.2 reproducer was already
+  checked in; M5.4's real build remains manual, as specified.
+
+33 offline tests total across the five new files (`test_export_depends.py`,
+`test_yocto_recipe.py`, `test_yocto_distro_inc.py`,
+`test_yocto_distro_property.py`, `test_no_network.py`), all confirmed under
+real network-namespace isolation (`unshare --net`), not just unmocked-call
+absence. `ruff`/`mypy` unchanged from M3.
+
 ### M5 — Validation and rollout
 
 | # | Task |

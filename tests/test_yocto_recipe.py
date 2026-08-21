@@ -102,11 +102,36 @@ def _render(pkg_name, packages=EXAMPLE_INTERFACES_PACKAGES, skip_keys=None):
         return pkg_recipe.get_recipe_text('Test')
 
 
+SIMPLE_PACKAGES = {
+    'simple_pkg': {
+        'build': ['libfoo'],
+        'buildtool': ['cmake'],
+        'exec': ['libbar'],
+    },
+    'libfoo': {},
+    'cmake': {},
+    'libbar': {},
+}
+
+
 class TestExampleInterfacesRegression(unittest.TestCase):
     """The executable form of the spec's Sec. 2.4 bug report."""
 
     def setUp(self):
         yoctoRecipe.reset()
+
+    def test_simple_recipe_golden(self):
+        """5.3: baseline .bb render matches the checked-in golden file.
+        Regenerate with:
+            python3 -c "
+        from tests.test_yocto_recipe import _render, SIMPLE_PACKAGES
+        open('tests/bitbake/simple_expected.bb', 'w').write(
+            _render('simple_pkg', packages=SIMPLE_PACKAGES))"
+        """
+        text = _render('simple_pkg', packages=SIMPLE_PACKAGES)
+        with open('tests/bitbake/simple_expected.bb') as f:
+            expected = f.read()
+        self.assertEqual(text, expected)
 
     def test_example_interfaces_names_transitive_native_deps(self):
         text = _render('example_interfaces')
