@@ -196,15 +196,22 @@ class TestUtils(unittest.TestCase):
         # should pass
         clean_up()
         # should remove files
-        with TempfileManager(None) as tempdir:
-            with open('%s/.pr-message.tmp' % tempdir, 'w') as msg_file:
-                msg_file.write('message')
-            with open('%s/.pr-title.tmp' % tempdir, 'w') as title_file:
-                title_file.write('title')
-            os.chdir(tempdir)
-            clean_up()
-            self.assertFalse(os.path.exists('%s/.pr-message.tmp' % tempdir))
-            self.assertFalse(os.path.exists('%s/.pr-title.tmp' % tempdir))
+        original_cwd = os.getcwd()
+        try:
+            with TempfileManager(None) as tempdir:
+                with open('%s/.pr-message.tmp' % tempdir, 'w') as msg_file:
+                    msg_file.write('message')
+                with open('%s/.pr-title.tmp' % tempdir, 'w') as title_file:
+                    title_file.write('title')
+                os.chdir(tempdir)
+                clean_up()
+                self.assertFalse(os.path.exists('%s/.pr-message.tmp' % tempdir))
+                self.assertFalse(os.path.exists('%s/.pr-title.tmp' % tempdir))
+        finally:
+            # TempfileManager removes tempdir on exit; leaving cwd pointed
+            # at it would break every relative-path-using test that runs
+            # after this one in the same session.
+            os.chdir(original_cwd)
 
     def test_resolve_dep_oe(self):
         """Test resolve dependency with OpenEmbedded"""
