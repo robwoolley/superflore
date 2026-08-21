@@ -27,6 +27,7 @@ rosdep-resolution path; get_srcrev() is short-circuited by pre-seeding
 srcrev_cache.
 """
 
+import os
 import unittest
 from unittest.mock import patch
 
@@ -34,6 +35,13 @@ from superflore.exceptions import UnresolvedDependency
 from superflore.generators.bitbake.gen_packages import _gen_recipe_for_package
 from superflore.generators.bitbake.yocto_recipe import yoctoRecipe
 from tests.bitbake.fixtures import FakeDistro, FakeRosPkg
+
+# Anchored on this file's own location, not the process cwd -- a relative
+# path here would be fragile to any test elsewhere in the suite that
+# changes directory without restoring it.
+SIMPLE_EXPECTED_BB = os.path.join(
+    os.path.dirname(__file__), 'bitbake', 'simple_expected.bb'
+)
 
 # Trimmed to spec Sec. 2.4's worked example: example_interfaces build_depends
 # nothing, buildtool_depends ament_cmake + rosidl_default_generators.
@@ -129,7 +137,7 @@ class TestExampleInterfacesRegression(unittest.TestCase):
             _render('simple_pkg', packages=SIMPLE_PACKAGES))"
         """
         text = _render('simple_pkg', packages=SIMPLE_PACKAGES)
-        with open('tests/bitbake/simple_expected.bb') as f:
+        with open(SIMPLE_EXPECTED_BB) as f:
             expected = f.read()
         self.assertEqual(text, expected)
 

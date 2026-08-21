@@ -222,6 +222,18 @@ If you want to use an existing repo instead of cloning one, specify
 Note that the `--only` flag currently generates bogus files under `conf` and
 `files`.
 
+**`--only`/`--preserve-existing` and export dependencies:** a package's
+generated recipe now names dependencies it inherited transitively from other
+packages' `build_export_depend`/`buildtool_export_depend` tags (REP-149;
+`ROS_TRANSITIVE_EXPORT_DEPENDS`/`ROS_TRANSITIVE_BUILDTOOL_EXPORT_DEPENDS`),
+not just its own direct tags. If an upstream package adds, removes, or
+changes such a tag, every consumer's recipe becomes stale until it is
+regenerated — but `--only` and `--preserve-existing` only regenerate the
+package(s) you name, so they will not pick up that change on their own. A
+full-distro run (no `--only`) always recomputes the whole closure and is
+unaffected. If you rely on `--only`/`--preserve-existing` for routine
+updates, periodically run a full-distro regeneration to catch drift.
+
 
 F.A.Q.:
 =========

@@ -118,6 +118,19 @@ sitting right there in the transitive export closure this spec proposes
 computing. Those bbappends become deletable under M5.3 without meta-ros
 losing anything.
 
+**Update (M5, measured against the shipped code):** this measurement
+counted a hit from *either* Closure A or Closure B, computed by the
+standalone `blast_radius.py` script written before `DependencyClosure`
+existed. Closure B (the `-native` existence closure) is deliberately never
+rendered into a recipe's own `DEPENDS`, so a Closure-B-only hit doesn't
+actually make the corresponding bbappend deletable. M5's re-check against
+the real, shipped `DependencyClosure` — Closure A only, which is what
+actually lands in `DEPENDS` — puts the number at **57.4%** (923/1608), the
+more accurate figure for M5.3's literal purpose. See
+[`../measurements/m5-real-regeneration/README.md`](../measurements/m5-real-regeneration/README.md)
+for the full re-analysis, including a file-level (not token-level) count of
+how many bbappends are actually safe to delete outright.
+
 **The 28% "not explained" bucket is not a hole in the design — it's mostly a
 different bug, correctly out of scope.** Breaking down the top unexplained
 entries:

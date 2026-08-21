@@ -36,24 +36,29 @@ The condition-evaluation context is hard-coded for ROS 2 distributions
 yoctoRecipe._get_condition_context() for jazzy/kilted. If this script is
 ever pointed at a ROS 1 distro, that context must be adjusted.
 """
+
 import argparse
 import csv
 import statistics
 import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import rosdistro
 from rosdistro.dependency_walker import DependencyWalker
 
 CONDITION_CONTEXT = {
-    "ROS_OS_OVERRIDE": "openembedded",
-    "ROS_VERSION": "2",
-    "ROS_PYTHON_VERSION": "3",
+    'ROS_OS_OVERRIDE': 'openembedded',
+    'ROS_VERSION': '2',
+    'ROS_PYTHON_VERSION': '3',
 }
 
 DIRECT_TYPES = (
-    "build", "buildtool", "build_export", "buildtool_export", "exec",
+    'build',
+    'buildtool',
+    'build_export',
+    'buildtool_export',
+    'exec',
 )
 
 
@@ -80,7 +85,8 @@ class MemoizedWalker:
         if key not in self._cache:
             try:
                 self._cache[key] = frozenset(
-                    self._walker.get_depends(pkg_name, dep_type))
+                    self._walker.get_depends(pkg_name, dep_type)
+                )
             except Exception as e:  # noqa: BLE001 -- measurement tool
                 self.errors[key] = str(e)
                 self._cache[key] = frozenset()
@@ -111,40 +117,41 @@ def closure_a(mw, released, pkg_name):
     ROS_TRANSITIVE_EXPORT_DEPENDS / ROS_TRANSITIVE_BUILDTOOL_EXPORT_DEPENDS,
     i.e. after subtracting the direct sets already emitted today.
     """
-    direct_target = mw.depends(pkg_name, "build") | mw.depends(
-        pkg_name, "build_export")
-    direct_native = mw.depends(pkg_name, "buildtool") | mw.depends(
-        pkg_name, "buildtool_export")
+    direct_target = mw.depends(pkg_name, 'build') | mw.depends(pkg_name, 'build_export')
+    direct_native = mw.depends(pkg_name, 'buildtool') | mw.depends(
+        pkg_name, 'buildtool_export'
+    )
 
     visited_target = set()
     visited_native = set()
-    queue = [(d, "TARGET") for d in direct_target]
-    queue += [(d, "NATIVE") for d in direct_native]
+    queue = [(d, 'TARGET') for d in direct_target]
+    queue += [(d, 'NATIVE') for d in direct_native]
 
     while queue:
         node, space = queue.pop()
-        if space == "TARGET":
+        if space == 'TARGET':
             if node in visited_target or node == pkg_name:
                 continue
             visited_target.add(node)
             if node not in released:
                 continue
-            for e in mw.depends(node, "build_export"):
+            for e in mw.depends(node, 'build_export'):
                 if e not in visited_target:
-                    queue.append((e, "TARGET"))
-            for e in mw.depends(node, "buildtool_export"):
+                    queue.append((e, 'TARGET'))
+            for e in mw.depends(node, 'buildtool_export'):
                 if e not in visited_native:
-                    queue.append((e, "NATIVE"))
+                    queue.append((e, 'NATIVE'))
         else:
             if node in visited_native or node == pkg_name:
                 continue
             visited_native.add(node)
             if node not in released:
                 continue
-            for e in (mw.depends(node, "build_export")
-                      | mw.depends(node, "buildtool_export")):
+            for e in mw.depends(node, 'build_export') | mw.depends(
+                node, 'buildtool_export'
+            ):
                 if e not in visited_native:
-                    queue.append((e, "NATIVE"))
+                    queue.append((e, 'NATIVE'))
 
     transitive_target = visited_target - direct_target - {pkg_name}
     transitive_native = visited_native - direct_native - {pkg_name}
@@ -157,8 +164,9 @@ def closure_b(mw, released, pkg_name):
     Returns the full native-space closure (not subtracted against anything
     -- its whole output is "packages that need a -native variant").
     """
-    direct_native = mw.depends(pkg_name, "buildtool") | mw.depends(
-        pkg_name, "buildtool_export")
+    direct_native = mw.depends(pkg_name, 'buildtool') | mw.depends(
+        pkg_name, 'buildtool_export'
+    )
 
     visited = set()
     queue = list(direct_native)
@@ -169,8 +177,13 @@ def closure_b(mw, released, pkg_name):
         visited.add(node)
         if node not in released:
             continue
-        for dep_type in ("build", "buildtool", "build_export",
-                          "buildtool_export", "exec"):
+        for dep_type in (
+            'build',
+            'buildtool',
+            'build_export',
+            'buildtool_export',
+            'exec',
+        ):
             for e in mw.depends(node, dep_type):
                 if e not in visited:
                     queue.append(e)
@@ -182,19 +195,21 @@ def today_native_set(mw, pkg_name):
     package today: direct buildtool_depend + buildtool_export_depend, plus
     the hard-coded ament_cmake special case (Sec. 2.3), which additionally
     native-resolves the package's own direct build_export_depend set."""
-    s = mw.depends(pkg_name, "buildtool") | mw.depends(
-        pkg_name, "buildtool_export")
-    if pkg_name == "ament_cmake":
-        s = s | mw.depends(pkg_name, "build_export")
+    s = mw.depends(pkg_name, 'buildtool') | mw.depends(pkg_name, 'buildtool_export')
+    if pkg_name == 'ament_cmake':
+        s = s | mw.depends(pkg_name, 'build_export')
     return s
 
 
 def measure_distro(distro_name, index):
-    print(f"[{distro_name}] fetching cached distribution...", file=sys.stderr)
+    print(f'[{distro_name}] fetching cached distribution...', file=sys.stderr)
     t0 = time.time()
     dist = rosdistro.get_cached_distribution(index, distro_name)
-    print(f"[{distro_name}] loaded {len(dist.release_packages)} release "
-          f"packages in {time.time() - t0:.1f}s", file=sys.stderr)
+    print(
+        f'[{distro_name}] loaded {len(dist.release_packages)} release '
+        f'packages in {time.time() - t0:.1f}s',
+        file=sys.stderr,
+    )
 
     mw = MemoizedWalker(dist, CONDITION_CONTEXT)
     released = released_packages(dist)
@@ -211,140 +226,173 @@ def measure_distro(distro_name, index):
         cb = closure_b(mw, released, pkg_name)
         closure_b_union |= cb
 
-        rows.append(ClosureSizes(
-            package=pkg_name,
-            direct_native_today=len(direct_native_today),
-            closure_a_target=len(closure_a_target),
-            closure_a_native=len(closure_a_native),
-            closure_b_native=len(cb),
-        ))
+        rows.append(
+            ClosureSizes(
+                package=pkg_name,
+                direct_native_today=len(direct_native_today),
+                closure_a_target=len(closure_a_target),
+                closure_a_native=len(closure_a_native),
+                closure_b_native=len(cb),
+            )
+        )
         if (i + 1) % 500 == 0:
-            print(f"[{distro_name}] {i + 1}/{len(released)} packages "
-                  f"({time.time() - t0:.1f}s elapsed)", file=sys.stderr)
+            print(
+                f'[{distro_name}] {i + 1}/{len(released)} packages '
+                f'({time.time() - t0:.1f}s elapsed)',
+                file=sys.stderr,
+            )
 
-    print(f"[{distro_name}] closures computed in {time.time() - t0:.1f}s, "
-          f"{len(mw.errors)} package(s) errored during traversal",
-          file=sys.stderr)
+    print(
+        f'[{distro_name}] closures computed in {time.time() - t0:.1f}s, '
+        f'{len(mw.errors)} package(s) errored during traversal',
+        file=sys.stderr,
+    )
     for (pkg, dep_type), msg in list(mw.errors.items())[:20]:
-        print(f"[{distro_name}]   error: {pkg}/{dep_type}: {msg}",
-              file=sys.stderr)
+        print(f'[{distro_name}]   error: {pkg}/{dep_type}: {msg}', file=sys.stderr)
 
     return rows, baseline_union, closure_b_union, len(released)
 
 
 def write_csv(path, rows):
-    with open(path, "w", newline="") as f:
+    with open(path, 'w', newline='') as f:
         w = csv.writer(f)
-        w.writerow([
-            "package", "direct_native_today", "closure_a_target_size",
-            "closure_a_native_size", "closure_b_native_size",
-            "native_delta",
-        ])
+        w.writerow(
+            [
+                'package',
+                'direct_native_today',
+                'closure_a_target_size',
+                'closure_a_native_size',
+                'closure_b_native_size',
+                'native_delta',
+            ]
+        )
         for r in sorted(rows, key=lambda r: -r.native_delta):
-            w.writerow([
-                r.package, r.direct_native_today, r.closure_a_target,
-                r.closure_a_native, r.closure_b_native, r.native_delta,
-            ])
+            w.writerow(
+                [
+                    r.package,
+                    r.direct_native_today,
+                    r.closure_a_target,
+                    r.closure_a_native,
+                    r.closure_b_native,
+                    r.native_delta,
+                ]
+            )
 
 
-def summarize(distro_name, rows, baseline_union, closure_b_union,
-              total_pkgs):
-    deltas = [r.native_delta for r in rows]
+def summarize(distro_name, rows, baseline_union, closure_b_union, total_pkgs):
     b_sizes = [r.closure_b_native for r in rows]
     a_target_sizes = [r.closure_a_target for r in rows]
     a_native_sizes = [r.closure_a_native for r in rows]
 
     def pct(v):
-        return f"{v:.1f}%"
+        return f'{v:.1f}%'
 
     lines = []
-    lines.append(f"## {distro_name}")
-    lines.append("")
-    lines.append(f"* Released packages: {total_pkgs}")
+    lines.append(f'## {distro_name}')
+    lines.append('')
+    lines.append(f'* Released packages: {total_pkgs}')
     lines.append(
-        f"* `ROS_SUPERFLORE_GENERATED_BUILDTOOLS` today (direct "
-        f"buildtool_depend/buildtool_export_depend union, incl. the "
-        f"ament_cmake special case): **{len(baseline_union)}** packages")
+        f'* `ROS_SUPERFLORE_GENERATED_BUILDTOOLS` today (direct '
+        f'buildtool_depend/buildtool_export_depend union, incl. the '
+        f'ament_cmake special case): **{len(baseline_union)}** packages'
+    )
     lines.append(
-        f"* `ROS_SUPERFLORE_GENERATED_BUILDTOOLS` under the Sec. 3.1 "
-        f"-native existence closure: **{len(closure_b_union)}** packages")
+        f'* `ROS_SUPERFLORE_GENERATED_BUILDTOOLS` under the Sec. 3.1 '
+        f'-native existence closure: **{len(closure_b_union)}** packages'
+    )
     growth = len(closure_b_union) - len(baseline_union)
     growth_pct = (growth / len(baseline_union) * 100) if baseline_union else 0
     lines.append(
-        f"* Growth: **+{growth}** packages ({pct(growth_pct)} relative to "
-        f"today; {pct(len(closure_b_union) / total_pkgs * 100)} of the "
-        f"whole distro would need a -native variant)")
-    lines.append("")
-    lines.append("Per-package closure size (Closure B, -native existence):")
+        f'* Growth: **+{growth}** packages ({pct(growth_pct)} relative to '
+        f'today; {pct(len(closure_b_union) / total_pkgs * 100)} of the '
+        f'whole distro would need a -native variant)'
+    )
+    lines.append('')
+    lines.append('Per-package closure size (Closure B, -native existence):')
     lines.append(
-        f"  min={min(b_sizes)} median={statistics.median(b_sizes):.0f} "
-        f"mean={statistics.mean(b_sizes):.1f} max={max(b_sizes)} "
-        f"p90={statistics.quantiles(b_sizes, n=10)[8]:.0f} "
-        f"p99={statistics.quantiles(b_sizes, n=100)[98]:.0f}")
-    lines.append("")
-    lines.append("Per-package closure size (Closure A target, "
-                  "ROS_TRANSITIVE_EXPORT_DEPENDS):")
+        f'  min={min(b_sizes)} median={statistics.median(b_sizes):.0f} '
+        f'mean={statistics.mean(b_sizes):.1f} max={max(b_sizes)} '
+        f'p90={statistics.quantiles(b_sizes, n=10)[8]:.0f} '
+        f'p99={statistics.quantiles(b_sizes, n=100)[98]:.0f}'
+    )
+    lines.append('')
     lines.append(
-        f"  min={min(a_target_sizes)} "
-        f"median={statistics.median(a_target_sizes):.0f} "
-        f"mean={statistics.mean(a_target_sizes):.1f} "
-        f"max={max(a_target_sizes)}")
-    lines.append("")
-    lines.append("Per-package closure size (Closure A native, "
-                  "ROS_TRANSITIVE_BUILDTOOL_EXPORT_DEPENDS):")
+        'Per-package closure size (Closure A target, ROS_TRANSITIVE_EXPORT_DEPENDS):'
+    )
     lines.append(
-        f"  min={min(a_native_sizes)} "
-        f"median={statistics.median(a_native_sizes):.0f} "
-        f"mean={statistics.mean(a_native_sizes):.1f} "
-        f"max={max(a_native_sizes)}")
-    lines.append("")
-    lines.append("Top 15 packages by native_delta "
-                  "(closure_b_native - direct_native_today):")
+        f'  min={min(a_target_sizes)} '
+        f'median={statistics.median(a_target_sizes):.0f} '
+        f'mean={statistics.mean(a_target_sizes):.1f} '
+        f'max={max(a_target_sizes)}'
+    )
+    lines.append('')
+    lines.append(
+        'Per-package closure size (Closure A native, '
+        'ROS_TRANSITIVE_BUILDTOOL_EXPORT_DEPENDS):'
+    )
+    lines.append(
+        f'  min={min(a_native_sizes)} '
+        f'median={statistics.median(a_native_sizes):.0f} '
+        f'mean={statistics.mean(a_native_sizes):.1f} '
+        f'max={max(a_native_sizes)}'
+    )
+    lines.append('')
+    lines.append(
+        'Top 15 packages by native_delta (closure_b_native - direct_native_today):'
+    )
     for r in sorted(rows, key=lambda r: -r.native_delta)[:15]:
         lines.append(
-            f"  {r.package}: today={r.direct_native_today} "
-            f"closure={r.closure_b_native} delta=+{r.native_delta}")
-    lines.append("")
-    return "\n".join(lines)
+            f'  {r.package}: today={r.direct_native_today} '
+            f'closure={r.closure_b_native} delta=+{r.native_delta}'
+        )
+    lines.append('')
+    return '\n'.join(lines)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--distro", action="append", dest="distros",
-                     default=None,
-                     help="distro name, repeatable (default: jazzy, kilted)")
-    ap.add_argument("--out-dir", default=".",
-                     help="directory to write CSVs and the report into")
+    ap.add_argument(
+        '--distro',
+        action='append',
+        dest='distros',
+        default=None,
+        help='distro name, repeatable (default: jazzy, kilted)',
+    )
+    ap.add_argument(
+        '--out-dir', default='.', help='directory to write CSVs and the report into'
+    )
     args = ap.parse_args()
-    distros = args.distros or ["jazzy", "kilted"]
+    distros = args.distros or ['jazzy', 'kilted']
 
     index = rosdistro.get_index(rosdistro.get_index_url())
 
     report_sections = [
-        "# M0.4 blast-radius measurement\n",
-        "Generated by `docs/specs/measurements/blast_radius.py`. See "
-        "`docs/specs/bitbake-export-depends.md` Sec. 3.1 and Risk R2.\n",
-        "Reproduce: `python3 docs/specs/measurements/blast_radius.py "
-        + " ".join(f"--distro {d}" for d in distros)
-        + " --out-dir docs/specs/measurements` (requires `rosdistro` and "
-        "`catkin_pkg`, both already in requirements.txt; the first run per "
+        '# M0.4 blast-radius measurement\n',
+        'Generated by `docs/specs/measurements/blast_radius.py`. See '
+        '`docs/specs/bitbake-export-depends.md` Sec. 3.1 and Risk R2.\n',
+        'Reproduce: `python3 docs/specs/measurements/blast_radius.py '
+        + ' '.join(f'--distro {d}' for d in distros)
+        + ' --out-dir docs/specs/measurements` (requires `rosdistro` and '
+        '`catkin_pkg`, both already in requirements.txt; the first run per '
         "distro fetches that distro's rosdistro distribution cache over "
-        "the network, everything after that is offline).\n",
+        'the network, everything after that is offline).\n',
     ]
     for distro_name in distros:
         rows, baseline_union, closure_b_union, total_pkgs = measure_distro(
-            distro_name, index)
-        csv_path = f"{args.out_dir}/{distro_name}_blast_radius.csv"
+            distro_name, index
+        )
+        csv_path = f'{args.out_dir}/{distro_name}_blast_radius.csv'
         write_csv(csv_path, rows)
-        print(f"[{distro_name}] wrote {csv_path}", file=sys.stderr)
-        report_sections.append(summarize(
-            distro_name, rows, baseline_union, closure_b_union, total_pkgs))
+        print(f'[{distro_name}] wrote {csv_path}', file=sys.stderr)
+        report_sections.append(
+            summarize(distro_name, rows, baseline_union, closure_b_union, total_pkgs)
+        )
 
-    report_path = f"{args.out_dir}/blast_radius_report.md"
-    with open(report_path, "w") as f:
-        f.write("\n".join(report_sections))
-    print(f"wrote {report_path}", file=sys.stderr)
+    report_path = f'{args.out_dir}/blast_radius_report.md'
+    with open(report_path, 'w') as f:
+        f.write('\n'.join(report_sections))
+    print(f'wrote {report_path}', file=sys.stderr)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
