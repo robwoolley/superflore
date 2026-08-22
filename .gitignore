@@ -13,3 +13,4 @@ ros-kinetic
 ros-lunar
 .coverage
 .pytest_cache/
+/scratch/

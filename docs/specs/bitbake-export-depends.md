@@ -746,22 +746,51 @@ adding a hand-written entry for unmerged work would be inconsistent with
 its tooling and would fabricate a PR/release reference that doesn't exist
 yet. It'll pick this work up automatically once merged and released.
 
-**5.4 and 5.7 are intentionally not attempted without your explicit
-go-ahead.** Both differ in kind from everything else in this spec:
+**5.4: done (2026-08-22), scoped to `ros-core` per your direction (not the
+full `packagegroup-ros-world`).** Real `bitbake-setup`-built wrynose+jazzy
+environment (`meta-openembedded` + `meta-ros`, `wrynose` branches, `DISTRO
+= "ros2"`), the same 5 fully-explained-bbappend packages from M5.1/M5.3
+(`iceoryx_binding_c`, `composition_interfaces`,
+`rosidl_typesupport_fastrtps_c`, `rosidl_typesupport_fastrtps_cpp`,
+`unique_identifier_msgs`) regenerated with the fixed superflore and their
+now-redundant `.bbappend`s removed, then a real `bitbake ros-core` —
+confirmed via `bitbake -g ros-core` to mean the full 445-package `RDEPENDS`
+closure (`rclcpp`, `rclpy`, `launch`, `sros2`, the `ament`/`rosidl`
+toolchain, …), not just the empty metapackage shell. **Result: 5850 tasks
+attempted, all succeeded**, all 5 touched packages confirmed built in both
+target and native form. Full evidence, setup, and reproduction steps:
+[`docs/specs/measurements/m5.4-real-build/`](measurements/m5.4-real-build/README.md).
 
-* **5.4** (real bitbake build of `packagegroup-ros-world` or an agreed
-  subset, with the M0.1 bbappends removed) is a large, open-ended resource
-  and time commitment — likely many hours building a real Yocto world
-  across thousands of ROS packages, on top of a real meta-ros checkout with
-  the M5.1-style regeneration applied. Tractable in principle (the wrynose
-  `bitbake-setup` environment from M0.2/M0.3 already works), but the scope
-  (how large a "subset" is "agreed," how long you're willing to let it run)
-  is a call only you can make.
-* **5.7** (coordinate the meta-ros PR) means opening a pull request against
-  `ros/meta-ros`, a repository this session does not have write access to
-  and that the design-note framing implies should go out under your name,
-  not be silently filed by an agent. This needs your explicit direction on
-  timing and content, not a unilateral action.
+Two things worth carrying forward from doing this for real:
+
+* **A genuine, newly-surfaced (but pre-existing) gap**: `rcutils` — reached
+  in native space by essentially every one of these packages — really does
+  declare `<build_export_depend>libatomic</build_export_depend>`, which
+  rosdep resolves to `gcc-runtime`, a real OE-core recipe with no `-native`
+  variant (native builds use the host compiler's own libatomic, not a
+  cross-built one). The closure correctly found this; `get_dependencies(...,
+  is_native=True)`'s blind `-native` suffixing (unchanged by this spec,
+  used for every native-space rendering already) is what breaks — a latent
+  bug this closure just reaches far enough to actually trigger. Worked
+  around here with `--skip-keys libatomic`, the existing, designed-for-this
+  mechanism — not invented for this validation. **A full-distro
+  regeneration (M5.7) will hit this on nearly everything and should
+  `--skip-keys libatomic` from the start**, not discover it mid-run.
+* **Use persistent disk, not `/tmp`, for anything like this.** The first
+  attempt at this build was started under `/tmp` (tmpfs, RAM-backed,
+  7.8GB total on this machine) and had to be killed mid-build once that was
+  caught — the real build went on to consume **~74GB**, confirming it would
+  never have fit. Redone from scratch under `/opt` (gitignored `scratch/`
+  directory) instead.
+
+**5.7: draft only, per your direction — not filed, no write access to
+`ros/meta-ros` regardless.**
+[`docs/specs/m5.7-meta-ros-pr-draft.md`](m5.7-meta-ros-pr-draft.md) has a
+suggested title/body for the eventual PR, with explicit placeholders for
+the parts that depend on the real full-distro regeneration this session's
+scoped validation deliberately isn't (file-level bbappend disposition
+counts, the actual diff, which distros). Coordinating and posting it is
+yours to do.
 
 ---
 
