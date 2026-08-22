@@ -1,0 +1,60 @@
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_configure: Succeeded
+NOTE: Running task 5832 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/ros2launch_0.26.12-1.bb:do_compile)
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_compile: Started
+NOTE: recipe launch-ros-0.26.12-1-r0: task do_packagedata: Succeeded
+NOTE: Running task 5833 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/launch-ros_0.26.12-1.bb:do_create_spdx)
+NOTE: Running task 5834 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/launch-ros_0.26.12-1.bb:do_package_write_ipk)
+NOTE: Running task 5835 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/launch-ros_0.26.12-1.bb:do_package_qa)
+NOTE: recipe launch-ros-0.26.12-1-r0: task do_create_spdx: Started
+NOTE: recipe launch-ros-0.26.12-1-r0: task do_package_write_ipk: Started
+NOTE: recipe launch-ros-0.26.12-1-r0: task do_package_qa: Started
+NOTE: recipe launch-ros-0.26.12-1-r0: task do_create_spdx: Succeeded
+NOTE: Running task 5836 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/launch-testing-ros_0.26.12-1.bb:do_package_write_ipk)
+NOTE: recipe launch-testing-ros-0.26.12-1-r0: task do_package_write_ipk: Started
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_compile: Succeeded
+NOTE: Running task 5837 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/ros2launch_0.26.12-1.bb:do_install)
+NOTE: recipe launch-ros-0.26.12-1-r0: task do_package_qa: Succeeded
+NOTE: Running task 5838 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/launch-testing-ros_0.26.12-1.bb:do_package_qa)
+NOTE: recipe launch-ros-0.26.12-1-r0: task do_package_write_ipk: Succeeded
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_install: Started
+NOTE: recipe launch-testing-ros-0.26.12-1-r0: task do_package_qa: Started
+NOTE: recipe launch-testing-ros-0.26.12-1-r0: task do_package_write_ipk: Succeeded
+NOTE: recipe launch-testing-ros-0.26.12-1-r0: task do_package_qa: Succeeded
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_install: Succeeded
+NOTE: Running task 5839 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/ros2launch_0.26.12-1.bb:do_package)
+NOTE: Running task 5840 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/ros2launch_0.26.12-1.bb:do_populate_sysroot)
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_package: Started
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_populate_sysroot: Started
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_populate_sysroot: Succeeded
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_package: Succeeded
+NOTE: Running task 5841 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/ros2launch_0.26.12-1.bb:do_packagedata)
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_packagedata: Started
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_packagedata: Succeeded
+NOTE: Running task 5842 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/ros2launch_0.26.12-1.bb:do_create_spdx)
+NOTE: Running task 5843 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/ros2launch_0.26.12-1.bb:do_package_write_ipk)
+NOTE: Running task 5844 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/launch-ros/ros2launch_0.26.12-1.bb:do_package_qa)
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_create_spdx: Started
+NOTE: Running task 5845 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/ros2cli-common-extensions/ros2cli-common-extensions_0.3.1-1.bb:do_package_write_ipk)
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_package_write_ipk: Started
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_package_qa: Started
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_create_spdx: Succeeded
+NOTE: Running task 5846 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/ros2cli-common-extensions/ros2cli-common-extensions_0.3.1-1.bb:do_package_qa)
+NOTE: recipe ros2cli-common-extensions-0.3.1-1-r0: task do_package_write_ipk: Started
+NOTE: recipe ros2cli-common-extensions-0.3.1-1-r0: task do_package_qa: Started
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_package_qa: Succeeded
+NOTE: Running task 5847 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/variants/ros-core_0.11.0-1.bb:do_create_package_spdx)
+NOTE: recipe ros-core-0.11.0-1-r0: task do_create_package_spdx: Started
+NOTE: recipe ros2launch-0.26.12-1-r0: task do_package_write_ipk: Succeeded
+NOTE: Running task 5848 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/variants/ros-core_0.11.0-1.bb:do_package_write_ipk)
+NOTE: recipe ros2cli-common-extensions-0.3.1-1-r0: task do_package_qa: Succeeded
+NOTE: recipe ros-core-0.11.0-1-r0: task do_package_write_ipk: Started
+NOTE: Running task 5849 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/variants/ros-core_0.11.0-1.bb:do_package_qa)
+NOTE: recipe ros2cli-common-extensions-0.3.1-1-r0: task do_package_write_ipk: Succeeded
+NOTE: recipe ros-core-0.11.0-1-r0: task do_package_qa: Started
+NOTE: recipe ros-core-0.11.0-1-r0: task do_create_package_spdx: Succeeded
+NOTE: recipe ros-core-0.11.0-1-r0: task do_package_qa: Succeeded
+NOTE: recipe ros-core-0.11.0-1-r0: task do_package_write_ipk: Succeeded
+NOTE: Running noexec task 5850 of 5850 (<build-dir>/layers/meta-ros/meta-ros2-jazzy/generated-recipes/variants/ros-core_0.11.0-1.bb:do_build)
+NOTE: Tasks Summary: Attempted 5850 tasks of which 0 didn't need to be rerun and all succeeded.
+
+Summary: There were 4 WARNING messages.
