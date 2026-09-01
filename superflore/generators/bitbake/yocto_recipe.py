@@ -56,7 +56,6 @@ yocto_releases = {
     'walnascar': '5.2',
     'whinlatter': '5.3',
     'wrynose': '6.0',
-    'wrynose': '6.0',
     'blacksail': '6.1',
 }
 
@@ -424,13 +423,13 @@ class yoctoRecipe(object):
                 ret += '# Original license in package.xml:\n'
                 ret += '#         "' + self.license + '"\n'
         elif isinstance(self.license, list):
-            _concat = "AND"
+            _concat = 'AND'
             if self.release:
-                if Version(self._get_yocto_version(self.release)) < \
-                   Version(yocto_releases['blacksail']):
-                    _concat = "&"
-            oe_lic = f' {_concat} '.join([get_license(lic)
-                                         for lic in self.license])
+                if Version(self._get_yocto_version(self.release)) < Version(
+                    yocto_releases['blacksail']
+                ):
+                    _concat = '&'
+            oe_lic = f' {_concat} '.join([get_license(lic) for lic in self.license])
             if oe_lic != f' {_concat} '.join(self.license):
                 ret += '# Original license in package.xml, joined with '
                 ret += f'"{_concat}" when multiple license tags were used:\n'
