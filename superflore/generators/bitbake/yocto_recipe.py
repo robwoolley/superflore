@@ -429,7 +429,9 @@ class yoctoRecipe(object):
                     yocto_releases['blacksail']
                 ):
                     _concat = '&'
-            oe_lic = f' {_concat} '.join([get_license(lic) for lic in self.license])
+            oe_lic = f' {_concat} '.join(
+                get_license(lic) for lic in self.license
+            )
             if oe_lic != f' {_concat} '.join(self.license):
                 ret += '# Original license in package.xml, joined with '
                 ret += f'"{_concat}" when multiple license tags were used:\n'
